@@ -47,6 +47,33 @@ export default function AddScheduleModal({ initialDate, entry, onClose }: Props)
   const [loading, setLoading]   = useState(false);
   const [success, setSuccess]   = useState(false);
 
+  // ── Load & Save Draft for New Entries ──
+  React.useEffect(() => {
+    if (!isEdit) {
+      const draftStr = localStorage.getItem("lifeOS_scheduleDraft");
+      if (draftStr) {
+        try {
+          const draft = JSON.parse(draftStr);
+          if (draft.title) setTitle(draft.title);
+          if (draft.date) setDate(draft.date);
+          if (draft.startTime) setStart(draft.startTime);
+          if (draft.endTime) setEnd(draft.endTime);
+          if (draft.type) setType(draft.type);
+          if (draft.description) setDesc(draft.description);
+          if (draft.location) setLocation(draft.location);
+        } catch (e) {}
+      }
+    }
+  }, [isEdit]);
+
+  React.useEffect(() => {
+    if (!isEdit && !success) {
+      localStorage.setItem("lifeOS_scheduleDraft", JSON.stringify({
+        title, date, startTime, endTime, type, description, location,
+      }));
+    }
+  }, [title, date, startTime, endTime, type, description, location, isEdit, success]);
+
   const handleSubmit = async () => {
     if (!title.trim()) return;
     setLoading(true);
@@ -54,6 +81,7 @@ export default function AddScheduleModal({ initialDate, entry, onClose }: Props)
       await updateScheduleEntry(entry.id, { title, date, startTime, endTime, type, description, location });
     } else {
       await addScheduleEntry({ title, date, startTime, endTime, type, description, location, isDone: false });
+      localStorage.removeItem("lifeOS_scheduleDraft");
     }
     setSuccess(true);
     setTimeout(onClose, 700);
