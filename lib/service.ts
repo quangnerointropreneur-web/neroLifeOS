@@ -260,18 +260,12 @@ export async function deleteScheduleEntry(id: string): Promise<void> {
   await deleteDoc(doc(db, "lifeOS_schedule", id));
 }
 
-/** Subscribe to schedule for yesterday, today, and tomorrow */
-export function subscribeScheduleDays(
+/** Subscribe to schedule for a specific date range */
+export function subscribeScheduleRange(
+  fromDate: string,
+  toDate: string,
   callback: (entries: ScheduleEntry[]) => void
 ): () => void {
-  // Fetch a 5-day window (yesterday to day-after-tomorrow), filter client-side
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const dayAfterTomorrow = new Date();
-  dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
-  const fromDate = yesterday.toISOString().split("T")[0];
-  const toDate = dayAfterTomorrow.toISOString().split("T")[0];
-
   const q = query(
     collection(db, "lifeOS_schedule"),
     where("userId", "==", USER_ID)
@@ -289,3 +283,4 @@ export function subscribeScheduleDays(
     callback(entries);
   });
 }
+

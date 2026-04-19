@@ -24,7 +24,6 @@ import {
   subscribeTransactions,
   subscribeFinancialGoals,
   getTodayLog,
-  subscribeScheduleDays,
 } from "@/lib/service";
 import { computeBalance, forecastCashFlow } from "@/lib/forecast";
 import { computeScore, ScoreBreakdown } from "@/lib/scoring";
@@ -55,9 +54,6 @@ interface LifeOSContextValue {
   setForecastRange: (r: ForecastRange) => void;
   forecast: ForecastDay[];
 
-  // Schedule
-  scheduleEntries: ScheduleEntry[];
-
   // Loading
   loading: boolean;
 }
@@ -72,7 +68,6 @@ export function LifeOSProvider({ children }: { children: React.ReactNode }) {
   const [neroPhetTxs, setNeroPhetTxs] = useState<Transaction[]>([]);
   const [goals, setGoals] = useState<FinancialGoal[]>([]);
   const [forecastRange, setForecastRange] = useState<ForecastRange>(30);
-  const [scheduleEntries, setScheduleEntries] = useState<ScheduleEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Load settings once
@@ -124,12 +119,6 @@ export function LifeOSProvider({ children }: { children: React.ReactNode }) {
     return unsub;
   }, []);
 
-  // Subscribe schedule (yesterday + today + tomorrow)
-  useEffect(() => {
-    const unsub = subscribeScheduleDays(setScheduleEntries);
-    return unsub;
-  }, []);
-
   // Computed values
   const todayScore = computeScore(
     todayLog?.gym,
@@ -173,7 +162,6 @@ export function LifeOSProvider({ children }: { children: React.ReactNode }) {
         forecastRange,
         setForecastRange,
         forecast,
-        scheduleEntries,
         loading,
       }}
     >

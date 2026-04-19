@@ -1,35 +1,41 @@
 "use client";
-import React, { useState, useMemo } from "react";
-import { useLifeOS } from "@/context/LifeOSContext";
+import React, { useState, useMemo, useEffect } from "react";
 import ScheduleTimeline from "@/components/schedule/ScheduleTimeline";
 import AddScheduleModal, { TASK_TYPE_META } from "@/components/schedule/AddScheduleModal";
 import { ScheduleEntry, TaskCode } from "@/lib/types";
-import { format, subDays, addDays } from "date-fns";
+import { subscribeScheduleRange } from "@/lib/service";
+import { format, subDays, addDays, startOfWeek, isSameDay, isToday } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Plus } from "lucide-react";
-
-const todayDate = new Date();
-const dates = [
-  subDays(todayDate, 1), // Yesterday
-  todayDate,             // Today
-  addDays(todayDate, 1), // Tomorrow
-];
-
-const DATE_LABELS = ["Hôm qua", "Hôm nay", "Ngày mai"];
-const DATE_EMOJIS = ["⬅️", "⚡", "➡️"];
+import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function SchedulePage() {
-  const { scheduleEntries } = useLifeOS();
-  const [activeIdx, setActiveIdx] = useState(1); // default: Today
+  const [activeDateObj, setActiveDateObj] = useState(new Date());
+  // Base date to compute the active week (Monday -> Sunday)
+  const [weekBaseDate, setWeekBaseDate] = useState(new Date());
+
+  const [scheduleEntries, setScheduleEntries] = useState<ScheduleEntry[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editEntry, setEditEntry] = useState<ScheduleEntry | null>(null);
 
-  const activeDate = format(dates[activeIdx], "yyyy-MM-dd");
+  // Compute the 7 days of the current viewed week (starts on Monday)
+  const weekStart = startOfWeek(weekBaseDate, { weekStartsOn: 1 });
+  const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i));
+  const weekEnd = weekDays[6];
+
+  // Fetch data for the current viewed week
+  useEffect(() => {
+    const fromStr = format(weekStart, "yyyy-MM-dd");
+    const toStr = format(weekEnd, "yyyy-MM-dd");
+    const unsub = subscribeScheduleRange(fromStr, toStr, setScheduleEntries);
+    return unsub;
+  }, [weekStart, weekEnd]);
+
+  const activeDateStr = format(activeDateObj, "yyyy-MM-dd");
 
   // Filter entries for the selected date
   const dayEntries = useMemo(
-    () => scheduleEntries.filter((e) => e.date === activeDate),
-    [scheduleEntries, activeDate]
+    () => scheduleEntries.filter((e) => e.date === activeDateStr),
+    [scheduleEntries, activeDateStr]
   );
 
   // Stats for header
@@ -44,6 +50,14 @@ export default function SchedulePage() {
     setShowAddModal(true);
   };
 
+  const nextWeek = () => setWeekBaseDate(addDays(weekBaseDate, 7));
+  const prevWeek = () => setWeekBaseDate(subDays(weekBaseDate, 7));
+  const goToToday = () => {
+    const today = new Date();
+    setWeekBaseDate(today);
+    setActiveDateObj(today);
+  };
+
   return (
     <>
       <div className="animate-fadeIn" style={{ display: "flex", flexDirection: "column", minHeight: "100dvh" }}>
@@ -54,55 +68,62 @@ export default function SchedulePage() {
           padding: "28px 20px 0",
           flexShrink: 0,
         }}>
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 4 }}>
-            Lịch Trình
-          </div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: "white", marginBottom: 16 }}>
-            Schedule 📅
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16 }}>
+            <div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 4 }}>
+                Lịch Trình
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: "white", textTransform: "capitalize" }}>
+                {format(weekStart, "MMMM, yyyy", { locale: vi })}
+              </div>
+            </div>
+            <button onClick={goToToday} style={{
+              background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 16, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "white", cursor: "pointer"
+            }}>
+              Hôm nay
+            </button>
           </div>
 
-          {/* 3-day tab selector */}
-          <div style={{
-            display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8,
-            marginBottom: 16,
-          }}>
-            {dates.map((d, i) => {
-              const ds = format(d, "yyyy-MM-dd");
-              const cnt = scheduleEntries.filter((e) => e.date === ds).length;
-              const isActive = activeIdx === i;
-              return (
-                <button
-                  key={i}
-                  onClick={() => setActiveIdx(i)}
-                  style={{
-                    borderRadius: 16,
-                    border: `1.5px solid ${isActive ? "#818cf8" : "rgba(255,255,255,0.08)"}`,
-                    background: isActive ? "rgba(129,140,248,0.14)" : "rgba(255,255,255,0.03)",
-                    padding: "10px 6px",
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                    display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-                  }}
-                >
-                  <span style={{ fontSize: 15 }}>{DATE_EMOJIS[i]}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: isActive ? "#818cf8" : "rgba(255,255,255,0.55)" }}>
-                    {DATE_LABELS[i]}
-                  </span>
-                  <span style={{ fontSize: 10, color: isActive ? "rgba(129,140,248,0.7)" : "rgba(255,255,255,0.3)" }}>
-                    {format(d, "dd/MM", { locale: vi })}
-                  </span>
-                  {cnt > 0 && (
-                    <span style={{
-                      fontSize: 9, fontWeight: 700, color: isActive ? "white" : "rgba(255,255,255,0.4)",
-                      background: isActive ? "#818cf8" : "rgba(255,255,255,0.1)",
-                      borderRadius: 10, padding: "1px 6px", marginTop: 2,
-                    }}>
-                      {cnt} lịch
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+          {/* Week Strip Navigation */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
+            <button onClick={prevWeek} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)", cursor: "pointer", padding: 4 }}>
+              <ChevronLeft size={20} />
+            </button>
+            <div style={{ flex: 1, display: "flex", justifyContent: "space-between" }}>
+               {weekDays.map((d, i) => {
+                 const isSel = isSameDay(d, activeDateObj);
+                 const hasData = scheduleEntries.some(e => e.date === format(d, "yyyy-MM-dd"));
+                 const isTdy = isToday(d);
+                 return (
+                   <button
+                     key={i}
+                     onClick={() => setActiveDateObj(d)}
+                     style={{
+                       display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                       padding: "8px 4px", borderRadius: 12, cursor: "pointer",
+                       background: isSel ? "rgba(129,140,248,0.15)" : "transparent",
+                       border: `1px solid ${isSel ? "#818cf8" : "transparent"}`,
+                       minWidth: 38,
+                     }}
+                   >
+                     <span style={{ fontSize: 11, fontWeight: 600, color: isSel ? "#818cf8" : "rgba(255,255,255,0.4)" }}>
+                       {["T2", "T3", "T4", "T5", "T6", "T7", "CN"][i]}
+                     </span>
+                     <span style={{ fontSize: 15, fontWeight: isSel ? 800 : 500, color: isSel ? "white" : "rgba(255,255,255,0.7)", position: "relative" }}>
+                       {format(d, "d")}
+                       {isTdy && !isSel && <div style={{position: "absolute", bottom: -8, left: 6, width: 4, height: 4, borderRadius: 2, background: "#818cf8"}}/>}
+                     </span>
+                     {hasData && !isSel && (
+                       <div style={{ width: 4, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.3)", marginTop: 2 }} />
+                     )}
+                   </button>
+                 );
+               })}
+            </div>
+            <button onClick={nextWeek} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)", cursor: "pointer", padding: 4 }}>
+              <ChevronRight size={20} />
+            </button>
           </div>
 
           {/* Progress + type chips row */}
@@ -157,8 +178,8 @@ export default function SchedulePage() {
         <div style={{ flex: 1, overflowY: "auto", padding: "8px 12px 24px" }}>
           <ScheduleTimeline
             entries={dayEntries}
-            selectedDate={activeDate}
-            isToday={activeIdx === 1}
+            selectedDate={activeDateStr}
+            isToday={isSameDay(activeDateObj, new Date())}
             onEdit={handleEdit}
             onAdd={handleAdd}
           />
@@ -180,7 +201,7 @@ export default function SchedulePage() {
       {/* ── Add/Edit Modal ─────────────────────────────────────── */}
       {(showAddModal || editEntry) && (
         <AddScheduleModal
-          initialDate={activeDate}
+          initialDate={activeDateStr}
           entry={editEntry ?? undefined}
           onClose={() => { setShowAddModal(false); setEditEntry(null); }}
         />
