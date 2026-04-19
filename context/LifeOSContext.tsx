@@ -88,15 +88,22 @@ export function LifeOSProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Subscribe health logs (last 90 days)
+  // Also add a 5-second timeout so loading never stays true forever
   useEffect(() => {
+    // Timeout fallback: if Firestore doesn't respond in 5s (e.g. rules blocking),
+    // force loading = false so the UI still renders with empty data
+    const timeout = setTimeout(() => setLoading(false), 5000);
+
     const unsub = subscribeHealthLogs(90, (logs) => {
+      clearTimeout(timeout);
       setRecentLogs(logs);
       const today = new Date().toISOString().split("T")[0];
       const todayEntry = logs.find((l) => l.date === today) ?? null;
       setTodayLog(todayEntry);
       setLoading(false);
     });
-    return unsub;
+
+    return () => { clearTimeout(timeout); unsub(); };
   }, []);
 
   // Subscribe personal transactions
