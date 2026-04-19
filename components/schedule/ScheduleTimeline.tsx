@@ -164,7 +164,8 @@ export default function ScheduleTimeline({
                 top,
                 left: LABEL_W + 6,
                 right: 6,
-                height,
+                height: "auto",
+                minHeight: height,
                 borderRadius: 12,
                 background: entry.isDone
                   ? "rgba(255,255,255,0.04)"
@@ -176,7 +177,7 @@ export default function ScheduleTimeline({
                 justifyContent: "space-between",
                 cursor: "pointer",
                 overflow: "hidden",
-                zIndex: 5,
+                zIndex: entry.description ? 6 : 5, // slightly higher z-index if it has description so it overlaps others gracefully
                 opacity: entry.isDone ? 0.55 : 1,
                 transition: "opacity 0.2s",
               }}
@@ -206,16 +207,18 @@ export default function ScheduleTimeline({
                   <span style={{
                     fontSize: 12, fontWeight: 700,
                     color: entry.isDone ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.9)",
-                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                    whiteSpace: "normal", // allow title to wrap if it's long too
+                    lineHeight: 1.3,
+                    wordBreak: "break-word",
                     textDecoration: entry.isDone ? "line-through" : "none",
                   }}>
                     {entry.title}
                   </span>
                 </div>
 
-                {/* Time range */}
+                {/* Time range & Location */}
                 {height > 50 && (
-                  <div style={{ fontSize: 10, color: entry.isDone ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.45)", display: "flex", alignItems: "center", gap: 4 }}>
+                  <div style={{ fontSize: 10, color: entry.isDone ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.45)", display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
                     🕒 {entry.startTime} – {entry.endTime}
                     {entry.location && (
                       <span style={{ display: "flex", alignItems: "center", gap: 2, marginLeft: 4 }}>
@@ -224,11 +227,26 @@ export default function ScheduleTimeline({
                     )}
                   </div>
                 )}
+
+                {/* Description Text */}
+                {entry.description && (
+                  <div style={{
+                    fontSize: 11,
+                    color: entry.isDone ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.7)",
+                    marginTop: 6,
+                    lineHeight: 1.4,
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                    paddingBottom: 4,
+                  }}>
+                    {entry.description}
+                  </div>
+                )}
               </div>
 
               {/* Action buttons */}
               {height > 46 && (
-                <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", paddingLeft: 6 }}>
+                <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", paddingLeft: 6, marginTop: "auto" }}>
                   <button
                     onClick={(e) => handleToggleDone(e, entry)}
                     style={{
