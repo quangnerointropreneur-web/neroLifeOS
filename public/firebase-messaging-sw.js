@@ -3,13 +3,15 @@ importScripts("https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"
 importScripts("https://www.gstatic.com/firebasejs/11.6.1/firebase-messaging-compat.js");
 
 firebase.initializeApp({
-  apiKey: "AIzaSyA3Fs3P-gR-ofK1nB03j8nM6f8RSopeBkw",
-  authDomain: "neroworkspace-3ecf6.firebaseapp.com",
-  projectId: "neroworkspace-3ecf6",
-  storageBucket: "neroworkspace-3ecf6.firebasestorage.app",
-  messagingSenderId: "108666922161",
-  appId: "1:108666922161:web:840f06a6dcf5b3521f2e90",
+  apiKey: "AIzaSyDIcZTYPHQJ67DYagwGiZTcBUCOUy0W_3k",
+  authDomain: "nerolifeos.firebaseapp.com",
+  projectId: "nerolifeos",
+  storageBucket: "nerolifeos.firebasestorage.app",
+  messagingSenderId: "1087634157157",
+  appId: "1:1087634157157:web:e878deef6c6108557c208c",
+  measurementId: "G-W28G2C4TMS",
 });
+
 
 const messaging = firebase.messaging();
 
