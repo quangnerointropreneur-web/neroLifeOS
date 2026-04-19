@@ -26,13 +26,22 @@ export interface UserSettings {
 export interface GymLog {
   completed: boolean;
   durationMin: number;
+  startTime?: string;
+  endTime?: string;
   muscleGroup?: string; // "chest", "back", "legs", "shoulders", "arms", "core", "cardio"
-  note?: string;
+  note?: string;        // exercise history
+}
+
+export interface MealLog {
+  name: string;
+  calories: number;
+  protein: number;
 }
 
 export interface NutritionLog {
   proteinG: number;
   caloriesKcal: number;
+  meals?: MealLog[];
   note?: string;
 }
 

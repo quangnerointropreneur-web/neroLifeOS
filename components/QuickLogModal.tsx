@@ -7,7 +7,8 @@ import {
   addTransfer,
 } from "@/lib/service";
 import { useLifeOS } from "@/context/LifeOSContext";
-import { WalletType } from "@/lib/types";
+import { WalletType, MealLog } from "@/lib/types";
+import { useEffect } from "react";
 import { format } from "date-fns";
 
 type LogMode =
@@ -33,13 +34,60 @@ export default function QuickLogModal({ onClose }: QuickLogModalProps) {
 
   // ── Health state ──
   const [gymDone, setGymDone] = useState(todayLog?.gym?.completed ?? false);
+  const [gymStartTime, setGymStartTime] = useState(todayLog?.gym?.startTime ?? "17:30");
+  const [gymEndTime, setGymEndTime] = useState(todayLog?.gym?.endTime ?? "18:30");
   const [gymMin, setGymMin] = useState(String(todayLog?.gym?.durationMin ?? 60));
+  const [gymNote, setGymNote] = useState(todayLog?.gym?.note ?? "");
+
   const [proteinG, setProteinG] = useState(String(todayLog?.nutrition?.proteinG ?? ""));
   const [caloriesKcal, setCaloriesKcal] = useState(String(todayLog?.nutrition?.caloriesKcal ?? ""));
+  const [meals, setMeals] = useState<MealLog[]>(todayLog?.nutrition?.meals ?? []);
+  const [mealName, setMealName] = useState("");
+  const [mealCal, setMealCal] = useState("");
+  const [mealPro, setMealPro] = useState("");
+
   const [sleepH, setSleepH] = useState(String(todayLog?.sleep?.hours ?? ""));
   const [sleepQ, setSleepQ] = useState<number>(todayLog?.sleep?.quality ?? 3);
   const [bedtime, setBedtime] = useState(todayLog?.sleep?.bedtime ?? "23:00");
   const [wakeTime, setWakeTime] = useState(todayLog?.sleep?.wakeTime ?? "06:30");
+
+  // Auto Compute Sleep Duration
+  useEffect(() => {
+    if (bedtime && wakeTime && mode === "health_sleep") {
+      const [bH, bM] = bedtime.split(":").map(Number);
+      const [wH, wM] = wakeTime.split(":").map(Number);
+      let diffM = (wH * 60 + wM) - (bH * 60 + bM);
+      if (diffM < 0) diffM += 24 * 60; // crossed midnight
+      setSleepH((diffM / 60).toFixed(1));
+    }
+  }, [bedtime, wakeTime, mode]);
+
+  // Auto Compute Gym Duration
+  useEffect(() => {
+    if (gymStartTime && gymEndTime && gymDone && mode === "health_gym") {
+      const [sH, sM] = gymStartTime.split(":").map(Number);
+      const [eH, eM] = gymEndTime.split(":").map(Number);
+      let diffM = (eH * 60 + eM) - (sH * 60 + sM);
+      if (diffM < 0) diffM += 24 * 60;
+      setGymMin(String(diffM));
+    }
+  }, [gymStartTime, gymEndTime, gymDone, mode]);
+
+  const addMeal = () => {
+    if (!mealName || !mealCal) return;
+    const newMeals = [...meals, { name: mealName, calories: Number(mealCal), protein: Number(mealPro) || 0 }];
+    setMeals(newMeals);
+    setCaloriesKcal(String(newMeals.reduce((acc, m) => acc + m.calories, 0)));
+    setProteinG(String(newMeals.reduce((acc, m) => acc + m.protein, 0)));
+    setMealName(""); setMealCal(""); setMealPro("");
+  };
+
+  const removeMeal = (index: number) => {
+    const newMeals = meals.filter((_, i) => i !== index);
+    setMeals(newMeals);
+    setCaloriesKcal(String(newMeals.reduce((acc, m) => acc + m.calories, 0)));
+    setProteinG(String(newMeals.reduce((acc, m) => acc + m.protein, 0)));
+  };
 
   // ── Finance state ──
   const [wallet, setWallet] = useState<WalletType>("personal");
@@ -62,6 +110,9 @@ export default function QuickLogModal({ onClose }: QuickLogModalProps) {
     await upsertHealthLog(today, {
       completed: gymDone,
       durationMin: Number(gymMin) || 0,
+      startTime: gymStartTime,
+      endTime: gymEndTime,
+      note: gymNote,
     }, todayLog?.nutrition, todayLog?.sleep, settings ?? undefined);
     await handleSuccess();
     setLoading(false);
@@ -72,6 +123,7 @@ export default function QuickLogModal({ onClose }: QuickLogModalProps) {
     await upsertHealthLog(today, todayLog?.gym, {
       proteinG: Number(proteinG) || 0,
       caloriesKcal: Number(caloriesKcal) || 0,
+      meals: meals,
     }, todayLog?.sleep, settings ?? undefined);
     await handleSuccess();
     setLoading(false);
@@ -213,9 +265,22 @@ export default function QuickLogModal({ onClose }: QuickLogModalProps) {
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <ToggleRow label="Đã tập hôm nay?" value={gymDone} onChange={setGymDone} />
             {gymDone && (
-              <Field label="Thời lượng (phút)">
-                <input style={inputStyle} type="number" value={gymMin} onChange={(e) => setGymMin(e.target.value)} min="0" max="300" />
-              </Field>
+              <>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <Field label="Bắt đầu">
+                    <input style={inputStyle} type="time" value={gymStartTime} onChange={(e) => setGymStartTime(e.target.value)} />
+                  </Field>
+                  <Field label="Kết thúc">
+                    <input style={inputStyle} type="time" value={gymEndTime} onChange={(e) => setGymEndTime(e.target.value)} />
+                  </Field>
+                </div>
+                <Field label="Thời lượng (phút)">
+                  <input style={inputStyle} type="number" value={gymMin} onChange={(e) => setGymMin(e.target.value)} min="0" max="300" />
+                </Field>
+                <Field label="Lịch sử bài tập">
+                  <textarea style={{ ...inputStyle, minHeight: 60, resize: "vertical" }} value={gymNote} onChange={(e) => setGymNote(e.target.value)} placeholder="VD: Bench press 4x8, Squat 3x10..." />
+                </Field>
+              </>
             )}
             <button style={btnPrimary} onClick={submitGym} disabled={loading}>
               {loading ? "Đang lưu..." : "Lưu Gym"}
@@ -232,12 +297,46 @@ export default function QuickLogModal({ onClose }: QuickLogModalProps) {
       <ModalShell onClose={onClose} title="🥩 Dinh dưỡng" onBack={() => setMode("select")}>
         {success ? <SuccessBanner /> : (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <Field label={`Protein (g) — Target: ${settings?.proteinTargetG ?? 160}g`}>
-              <input style={inputStyle} type="number" value={proteinG} onChange={(e) => setProteinG(e.target.value)} placeholder="0" />
-            </Field>
-            <Field label="Calories (kcal)">
-              <input style={inputStyle} type="number" value={caloriesKcal} onChange={(e) => setCaloriesKcal(e.target.value)} placeholder="0" />
-            </Field>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Field label={`Protein tổng (g) / ${settings?.proteinTargetG ?? 160}g`}>
+                <input style={inputStyle} type="number" value={proteinG} onChange={(e) => setProteinG(e.target.value)} placeholder="0" />
+              </Field>
+              <Field label={`Calo tổng (kcal)`}>
+                <input style={inputStyle} type="number" value={caloriesKcal} onChange={(e) => setCaloriesKcal(e.target.value)} placeholder="0" />
+              </Field>
+            </div>
+
+            {/* Thêm bữa ăn */}
+            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "12px 14px" }}>
+              <div style={{ ...labelStyle, marginBottom: 8 }}>Thêm bữa ăn (để tự cộng tổng)</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 65px 65px", gap: 6, marginBottom: 8 }}>
+                <input style={{ ...inputStyle, padding: "8px" }} placeholder="Tên món" value={mealName} onChange={(e) => setMealName(e.target.value)} />
+                <input style={{ ...inputStyle, padding: "8px" }} placeholder="Calo" type="number" value={mealCal} onChange={(e) => setMealCal(e.target.value)} />
+                <input style={{ ...inputStyle, padding: "8px" }} placeholder="Pro" type="number" value={mealPro} onChange={(e) => setMealPro(e.target.value)} />
+              </div>
+              <button 
+                onClick={addMeal} 
+                disabled={!mealName || !mealCal}
+                style={{ width: "100%", padding: "8px 0", borderRadius: 8, fontSize: 13, fontWeight: 600, background: (!mealName || !mealCal) ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.1)", border: "none", color: "white", cursor: (!mealName || !mealCal) ? "not-allowed" : "pointer", opacity: (!mealName || !mealCal) ? 0.5 : 1 }}
+              >
+                + Thêm món
+              </button>
+
+              {meals.length > 0 && (
+                <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+                  {meals.map((m, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(0,0,0,0.2)", padding: "8px 10px", borderRadius: 8, fontSize: 13 }}>
+                      <span style={{ color: "rgba(255,255,255,0.9)", fontWeight: 500 }}>{m.name}</span>
+                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                        <span style={{ color: "rgba(255,255,255,0.5)" }}>{m.calories}kcal • {m.protein}g</span>
+                        <button onClick={() => removeMeal(i)} style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer", padding: 0 }}><X size={14}/></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <button style={btnPrimary} onClick={submitNutrition} disabled={loading}>
               {loading ? "Đang lưu..." : "Lưu Dinh Dưỡng"}
             </button>
@@ -253,9 +352,6 @@ export default function QuickLogModal({ onClose }: QuickLogModalProps) {
       <ModalShell onClose={onClose} title="🌙 Giấc Ngủ" onBack={() => setMode("select")}>
         {success ? <SuccessBanner /> : (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <Field label={`Số giờ ngủ — Target: ${settings?.sleepTargetH ?? 7.5}h`}>
-              <input style={inputStyle} type="number" value={sleepH} onChange={(e) => setSleepH(e.target.value)} step="0.5" placeholder="7.5" />
-            </Field>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <Field label="Giờ ngủ">
                 <input style={inputStyle} type="time" value={bedtime} onChange={(e) => setBedtime(e.target.value)} />
@@ -264,18 +360,23 @@ export default function QuickLogModal({ onClose }: QuickLogModalProps) {
                 <input style={inputStyle} type="time" value={wakeTime} onChange={(e) => setWakeTime(e.target.value)} />
               </Field>
             </div>
-            <Field label={`Chất lượng giấc ngủ: ${sleepQ}/5`}>
-              <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.2)", padding: "12px 14px", borderRadius: 12 }}>
+              <span style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", fontWeight: 600, textTransform: "uppercase" }}>Tổng giờ ngủ</span>
+              <span style={{ fontSize: 20, fontWeight: 800, color: "#60a5fa" }}>{sleepH}h</span>
+            </div>
+            <Field label={`Chất lượng giấc ngủ`}>
+              <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
                 {[1, 2, 3, 4, 5].map((q) => (
                   <button
                     key={q}
                     onClick={() => setSleepQ(q)}
                     style={{
-                      width: 42, height: 42, borderRadius: 10,
+                      flex: 1, height: 46, borderRadius: 10,
                       border: `2px solid ${sleepQ >= q ? "#60a5fa" : "rgba(255,255,255,0.1)"}`,
                       background: sleepQ >= q ? "rgba(96,165,250,0.2)" : "rgba(255,255,255,0.04)",
                       color: sleepQ >= q ? "#60a5fa" : "rgba(255,255,255,0.3)",
-                      fontWeight: 700, fontSize: 16, cursor: "pointer",
+                      fontWeight: 700, fontSize: 20, cursor: "pointer",
+                      transition: "all 0.15s"
                     }}
                   >
                     {["😫","😞","😐","😊","🤩"][q - 1]}
