@@ -1,0 +1,148 @@
+/* ── Google Fonts ─────────────────────────────────────────────────────────── */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
+
+@import "tailwindcss";
+
+/* ── CSS Custom Properties ────────────────────────────────────────────────── */
+:root {
+  --bg-base: #0c0e1a;
+  --bg-card: rgba(255, 255, 255, 0.04);
+  --bg-card-hover: rgba(255, 255, 255, 0.07);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --text-primary: rgba(255, 255, 255, 0.95);
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-muted: rgba(255, 255, 255, 0.35);
+  --accent-violet: #818cf8;
+  --accent-emerald: #34d399;
+  --accent-blue: #60a5fa;
+  --accent-amber: #f59e0b;
+  --accent-red: #ef4444;
+  /* Gradients */
+  --grad-health: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+  --grad-finance: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  --grad-hero: linear-gradient(160deg, #1e213a 0%, #0c0e1a 60%);
+}
+
+/* ── Reset & Base ─────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Mobile Frame (max 480px center) ─────────────────────────────────────── */
+#app-frame {
+  width: 100%;
+  max-width: 480px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  position: relative;
+  background: var(--bg-base);
+  /* Subtle gradient shimmer */
+  background-image: radial-gradient(ellipse at 50% -10%, rgba(99, 102, 241, 0.15) 0%, transparent 60%);
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+/* ── Input / Select Dark Overrides ────────────────────────────────────────── */
+input, select, textarea {
+  font-family: inherit;
+  color-scheme: dark;
+}
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.6);
+}
+
+/* ── Animations ────────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(129,140,248,0.4); }
+  70%  { box-shadow: 0 0 0 12px rgba(129,140,248,0); }
+  100% { box-shadow: 0 0 0 0 rgba(129,140,248,0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ── Utility ────────────────────────────────────────────────────────────────── */
+.glass-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  backdrop-filter: blur(12px);
+}
+
+/* ── FAB Button ────────────────────────────────────────────────────────────── */
+.fab {
+  position: fixed;
+  bottom: calc(70px + env(safe-area-inset-bottom));
+  right: calc(50% - 240px + 16px);
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  border: none;
+  background: linear-gradient(135deg, #818cf8, #6366f1);
+  color: white;
+  font-size: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.5);
+  z-index: 99;
+  transition: transform 0.2s, box-shadow 0.2s;
+  animation: pulse-ring 2.5s ease-out infinite;
+}
+.fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.6);
+}
+.fab:active {
+  transform: scale(0.96);
+}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 12px;
+}
