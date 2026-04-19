@@ -164,8 +164,7 @@ export default function ScheduleTimeline({
                 top,
                 left: LABEL_W + 6,
                 right: 6,
-                height: "auto",
-                minHeight: height,
+                height,
                 borderRadius: 12,
                 background: entry.isDone
                   ? "rgba(255,255,255,0.04)"
@@ -177,7 +176,7 @@ export default function ScheduleTimeline({
                 justifyContent: "space-between",
                 cursor: "pointer",
                 overflow: "hidden",
-                zIndex: entry.description ? 6 : 5, // slightly higher z-index if it has description so it overlaps others gracefully
+                zIndex: 5,
                 opacity: entry.isDone ? 0.55 : 1,
                 transition: "opacity 0.2s",
               }}
@@ -207,9 +206,7 @@ export default function ScheduleTimeline({
                   <span style={{
                     fontSize: 12, fontWeight: 700,
                     color: entry.isDone ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.9)",
-                    whiteSpace: "normal", // allow title to wrap if it's long too
-                    lineHeight: 1.3,
-                    wordBreak: "break-word",
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                     textDecoration: entry.isDone ? "line-through" : "none",
                   }}>
                     {entry.title}
@@ -229,15 +226,17 @@ export default function ScheduleTimeline({
                 )}
 
                 {/* Description Text */}
-                {entry.description && (
+                {entry.description && height > 60 && (
                   <div style={{
                     fontSize: 11,
                     color: entry.isDone ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.7)",
                     marginTop: 6,
                     lineHeight: 1.4,
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                    paddingBottom: 4,
+                    display: "-webkit-box",
+                    WebkitBoxOrient: "vertical",
+                    WebkitLineClamp: Math.max(1, Math.floor((height - 56) / 16)), // dynamic lines based on height
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
                   }}>
                     {entry.description}
                   </div>
@@ -246,7 +245,7 @@ export default function ScheduleTimeline({
 
               {/* Action buttons */}
               {height > 46 && (
-                <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", paddingLeft: 6, marginTop: "auto" }}>
+                <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", paddingLeft: 6 }}>
                   <button
                     onClick={(e) => handleToggleDone(e, entry)}
                     style={{

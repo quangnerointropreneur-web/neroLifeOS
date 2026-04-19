@@ -157,7 +157,7 @@ export default function AddScheduleModal({ initialDate, entry, onClose }: Props)
             {/* Description */}
             <Field label="Ghi chú (tuỳ chọn)">
               <textarea
-                style={{ ...inputStyle, resize: "vertical", minHeight: 64 }}
+                style={{ ...inputStyle, resize: "vertical", minHeight: 140, lineHeight: 1.5 }}
                 value={description}
                 onChange={(e) => setDesc(e.target.value)}
                 placeholder="Chi tiết thêm..."
