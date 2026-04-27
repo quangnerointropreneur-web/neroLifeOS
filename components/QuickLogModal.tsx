@@ -159,19 +159,20 @@ export default function QuickLogModal({ onClose }: QuickLogModalProps) {
 
   const inputStyle: React.CSSProperties = {
     width: "100%",
-    background: "rgba(255,255,255,0.06)",
-    border: "1px solid rgba(255,255,255,0.12)",
+    background: "var(--bg-input)",
+    border: "1px solid var(--border-input)",
     borderRadius: 10,
     padding: "10px 12px",
-    color: "white",
+    color: "var(--text-primary)",
     fontSize: 14,
     outline: "none",
     boxSizing: "border-box",
+    fontFamily: "inherit",
   };
 
   const labelStyle: React.CSSProperties = {
     fontSize: 11,
-    color: "rgba(255,255,255,0.45)",
+    color: "var(--text-label)",
     fontWeight: 600,
     textTransform: "uppercase",
     letterSpacing: "0.5px",
@@ -192,8 +193,10 @@ export default function QuickLogModal({ onClose }: QuickLogModalProps) {
     opacity: loading ? 0.7 : 1,
   };
 
-  const CATEGORIES_INCOME = ["Doanh thu", "Lương", "Freelance", "Lợi nhuận", "Khác"];
-  const CATEGORIES_EXPENSE = ["Mặt bằng", "Lương nhân viên", "Nhà cung cấp", "Ăn uống", "Di chuyển", "Marketing", "Khác"];
+  const DEFAULT_INCOME_CATS = ["Doanh thu", "Lương", "Freelance", "Lợi nhuận", "Khác"];
+  const DEFAULT_EXPENSE_CATS = ["Mặt bằng", "Lương nhân viên", "Nhà cung cấp", "Ăn uống", "Di chuyển", "Marketing", "Khác"];
+  const CATEGORIES_INCOME = settings?.incomeCategories?.length ? settings.incomeCategories : DEFAULT_INCOME_CATS;
+  const CATEGORIES_EXPENSE = settings?.expenseCategories?.length ? settings.expenseCategories : DEFAULT_EXPENSE_CATS;
 
   /* ────────── SELECT MODE ────────── */
   if (mode === "select") {
@@ -556,8 +559,8 @@ function ModalShell({
           position: "relative",
           width: "100%",
           maxWidth: 480,
-          background: "linear-gradient(180deg, #1a1d2e 0%, #12141f 100%)",
-          border: "1px solid rgba(255,255,255,0.1)",
+          background: "var(--modal-bg)",
+          border: "1px solid var(--modal-border)",
           borderRadius: "24px 24px 0 0",
           padding: "24px 22px 40px",
           maxHeight: "90vh",
@@ -591,7 +594,7 @@ function ModalShell({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
+      <div style={{ fontSize: 11, color: "var(--text-label)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
         {label}
       </div>
       {children}

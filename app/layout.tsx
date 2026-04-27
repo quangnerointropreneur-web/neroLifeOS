@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { LifeOSProvider } from "@/context/LifeOSContext";
+import { ThemeProvider } from "@/components/ui/ThemeProvider";
 import BottomNav from "@/components/layout/BottomNav";
+import SideNav from "@/components/layout/SideNav";
 
 export const metadata: Metadata = {
   title: "LifeOS — Nero",
@@ -22,22 +24,32 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi">
+    <html lang="vi" data-theme="dark">
       <body>
-        <LifeOSProvider>
-          <div id="app-frame">
-            <main
-              style={{
-                paddingTop: 0,
-                paddingBottom: "calc(80px + env(safe-area-inset-bottom))",
-                minHeight: "100dvh",
-              }}
-            >
-              {children}
-            </main>
-            <BottomNav />
-          </div>
-        </LifeOSProvider>
+        <ThemeProvider>
+          <LifeOSProvider>
+            <div id="app-shell">
+              {/* Desktop sidebar – hidden on mobile via CSS */}
+              <SideNav />
+
+              {/* Main frame */}
+              <div id="app-frame">
+                <main
+                  style={{
+                    paddingTop: 0,
+                    paddingBottom: "calc(80px + env(safe-area-inset-bottom))",
+                    minHeight: "100dvh",
+                  }}
+                >
+                  {children}
+                </main>
+
+                {/* Mobile bottom nav – hidden on desktop via CSS */}
+                <BottomNav />
+              </div>
+            </div>
+          </LifeOSProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

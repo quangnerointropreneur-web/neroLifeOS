@@ -18,6 +18,9 @@ export interface UserSettings {
   notifyGymReminderAt: string;  // "21:30"
   notifySleepReminderAt: string; // "22:00"
   fcmToken?: string;
+  // Custom categories
+  incomeCategories?: string[];
+  expenseCategories?: string[];
   createdAt: string;
   updatedAt: string;
 }

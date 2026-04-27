@@ -1,40 +1,182 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useLifeOS } from "@/context/LifeOSContext";
+import { useTheme } from "@/components/ui/ThemeProvider";
 import { UserSettings } from "@/lib/types";
 import { addFinancialGoal } from "@/lib/service";
 import { fmtVND } from "@/lib/forecast";
 import { format } from "date-fns";
-import { Save, Plus } from "lucide-react";
+import { Save, Plus, Trash2, Sun, Moon } from "lucide-react";
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.12)",
+  background: "var(--bg-input)",
+  border: "1px solid var(--border-input)",
   borderRadius: 10,
   padding: "10px 12px",
-  color: "white",
+  color: "var(--text-primary)",
   fontSize: 14,
   outline: "none",
   boxSizing: "border-box",
+  fontFamily: "inherit",
 };
 
-function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
+const cardStyle: React.CSSProperties = {
+  background: "var(--bg-card)",
+  border: "1px solid var(--border)",
+  borderRadius: 20,
+  padding: 18,
+  display: "flex",
+  flexDirection: "column",
+  gap: 14,
+};
+
+function Field({
+  label,
+  children,
+  hint,
+}: {
+  label: string;
+  children: React.ReactNode;
+  hint?: string;
+}) {
   return (
     <div>
-      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
+      <div
+        style={{
+          fontSize: 11,
+          color: "var(--text-label)",
+          fontWeight: 600,
+          textTransform: "uppercase",
+          letterSpacing: "0.5px",
+          marginBottom: 6,
+        }}
+      >
         {label}
       </div>
       {children}
-      {hint && <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginTop: 4 }}>{hint}</div>}
+      {hint && (
+        <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>
+          {hint}
+        </div>
+      )}
     </div>
   );
 }
 
+// ── Category Manager ──────────────────────────────────────────────────────────
+function CategoryManager({
+  title,
+  emoji,
+  items,
+  accentColor,
+  onAdd,
+  onRemove,
+}: {
+  title: string;
+  emoji: string;
+  items: string[];
+  accentColor: string;
+  onAdd: (val: string) => void;
+  onRemove: (val: string) => void;
+}) {
+  const [newCat, setNewCat] = useState("");
+  return (
+    <div>
+      <div
+        style={{
+          fontSize: 11,
+          color: "var(--text-label)",
+          fontWeight: 600,
+          textTransform: "uppercase",
+          letterSpacing: "0.5px",
+          marginBottom: 8,
+        }}
+      >
+        {emoji} {title}
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+        {items.map((cat) => (
+          <div
+            key={cat}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "4px 10px",
+              borderRadius: 20,
+              background: `${accentColor}18`,
+              border: `1px solid ${accentColor}35`,
+              fontSize: 12,
+              color: accentColor,
+              fontWeight: 500,
+            }}
+          >
+            {cat}
+            <button
+              onClick={() => onRemove(cat)}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: accentColor,
+                padding: 0,
+                lineHeight: 1,
+                opacity: 0.6,
+                display: "flex",
+              }}
+            >
+              <Trash2 size={10} />
+            </button>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input
+          style={{ ...inputStyle, flex: 1 }}
+          value={newCat}
+          onChange={(e) => setNewCat(e.target.value)}
+          placeholder="Thêm hạng mục mới..."
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && newCat.trim()) {
+              onAdd(newCat.trim());
+              setNewCat("");
+            }
+          }}
+        />
+        <button
+          onClick={() => {
+            if (newCat.trim()) {
+              onAdd(newCat.trim());
+              setNewCat("");
+            }
+          }}
+          style={{
+            padding: "10px 14px",
+            borderRadius: 10,
+            border: "none",
+            background: `${accentColor}22`,
+            color: accentColor,
+            fontWeight: 700,
+            cursor: "pointer",
+            fontSize: 18,
+          }}
+        >
+          <Plus size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const { settings, updateUserSettings, goals } = useLifeOS();
+  const { theme, toggleTheme } = useTheme();
   const [form, setForm] = useState<Partial<UserSettings>>({});
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Goal form
   const [showGoalForm, setShowGoalForm] = useState(false);
@@ -56,9 +198,18 @@ export default function SettingsPage() {
   };
 
   const handleSave = async () => {
-    await updateUserSettings(form);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setSaving(true);
+    setError(null);
+    try {
+      await updateUserSettings(form);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setError("Lưu thất bại. Kiểm tra kết nối Firebase.");
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleAddGoal = async () => {
@@ -79,14 +230,50 @@ export default function SettingsPage() {
     setGoalName(""); setGoalAmount(""); setGoalSupplier("");
   };
 
+  // Category helpers
+  const incCats = form.incomeCategories ?? ["Doanh thu", "Lương", "Freelance", "Lợi nhuận", "Khác"];
+  const expCats = form.expenseCategories ?? ["Mặt bằng", "Lương nhân viên", "Nhà cung cấp", "Ăn uống", "Di chuyển", "Marketing", "Khác"];
+
+  const addIncCat = (val: string) => set("incomeCategories", [...incCats.filter(c => c !== val), val]);
+  const removeIncCat = (val: string) => set("incomeCategories", incCats.filter(c => c !== val));
+  const addExpCat = (val: string) => set("expenseCategories", [...expCats.filter(c => c !== val), val]);
+  const removeExpCat = (val: string) => set("expenseCategories", expCats.filter(c => c !== val));
+
   return (
     <div className="animate-fadeIn">
       {/* Header */}
-      <div style={{ background: "linear-gradient(160deg,rgba(245,158,11,0.1) 0%,transparent 60%)", padding: "28px 20px 20px" }}>
-        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 4 }}>
-          Cài Đặt
+      <div
+        style={{
+          background: "linear-gradient(160deg,rgba(245,158,11,0.08) 0%,transparent 60%)",
+          padding: "28px 20px 20px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: 11,
+              color: "var(--text-muted)",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.8px",
+              marginBottom: 4,
+            }}
+          >
+            Cài Đặt
+          </div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)" }}>
+            Settings ⚙️
+          </div>
         </div>
-        <div style={{ fontSize: 24, fontWeight: 900, color: "white" }}>Settings ⚙️</div>
+
+        {/* Theme Toggle */}
+        <button onClick={toggleTheme} className="theme-toggle" title="Chuyển chủ đề">
+          {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+          {theme === "dark" ? "Sáng" : "Tối"}
+        </button>
       </div>
 
       <div style={{ padding: "16px 16px 0", display: "flex", flexDirection: "column", gap: 24 }}>
@@ -94,13 +281,24 @@ export default function SettingsPage() {
         {/* ── Profile ──────────────────────────────────────────────── */}
         <section>
           <div className="section-title" style={{ marginBottom: 12 }}>👤 Hồ Sơ</div>
-          <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 20, padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={cardStyle}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <Field label="Tên hiển thị">
-                <input style={inputStyle} value={form.displayName ?? ""} onChange={(e) => set("displayName", e.target.value)} placeholder="Nero" />
+                <input
+                  style={inputStyle}
+                  value={form.displayName ?? ""}
+                  onChange={(e) => set("displayName", e.target.value)}
+                  placeholder="Nero"
+                />
               </Field>
               <Field label="Avatar Emoji">
-                <input style={inputStyle} value={form.avatarEmoji ?? ""} onChange={(e) => set("avatarEmoji", e.target.value)} placeholder="🦁" maxLength={2} />
+                <input
+                  style={inputStyle}
+                  value={form.avatarEmoji ?? ""}
+                  onChange={(e) => set("avatarEmoji", e.target.value)}
+                  placeholder="🦁"
+                  maxLength={2}
+                />
               </Field>
             </div>
           </div>
@@ -109,19 +307,48 @@ export default function SettingsPage() {
         {/* ── Health Targets ─────────────────────────────────────── */}
         <section>
           <div className="section-title" style={{ marginBottom: 12 }}>🏋️ Mục Tiêu Sức Khỏe</div>
-          <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 20, padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={cardStyle}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <Field label="Protein mục tiêu (g)" hint="VD: 160g/ngày">
-                <input style={inputStyle} type="number" value={form.proteinTargetG ?? ""} onChange={(e) => set("proteinTargetG", Number(e.target.value))} min="50" max="400" />
+                <input
+                  style={inputStyle}
+                  type="number"
+                  value={form.proteinTargetG ?? ""}
+                  onChange={(e) => set("proteinTargetG", Number(e.target.value))}
+                  min="50"
+                  max="400"
+                />
               </Field>
               <Field label="Calories (kcal)" hint="VD: 2500 kcal">
-                <input style={inputStyle} type="number" value={form.caloriesTargetKcal ?? ""} onChange={(e) => set("caloriesTargetKcal", Number(e.target.value))} min="1000" max="5000" />
+                <input
+                  style={inputStyle}
+                  type="number"
+                  value={form.caloriesTargetKcal ?? ""}
+                  onChange={(e) => set("caloriesTargetKcal", Number(e.target.value))}
+                  min="1000"
+                  max="5000"
+                />
               </Field>
               <Field label="Giấc ngủ mục tiêu (h)" hint="VD: 7.5h">
-                <input style={inputStyle} type="number" step="0.5" value={form.sleepTargetH ?? ""} onChange={(e) => set("sleepTargetH", Number(e.target.value))} min="4" max="12" />
+                <input
+                  style={inputStyle}
+                  type="number"
+                  step="0.5"
+                  value={form.sleepTargetH ?? ""}
+                  onChange={(e) => set("sleepTargetH", Number(e.target.value))}
+                  min="4"
+                  max="12"
+                />
               </Field>
               <Field label="Ngày gym/tuần" hint="VD: 5 ngày">
-                <input style={inputStyle} type="number" value={form.gymDaysPerWeek ?? ""} onChange={(e) => set("gymDaysPerWeek", Number(e.target.value))} min="1" max="7" />
+                <input
+                  style={inputStyle}
+                  type="number"
+                  value={form.gymDaysPerWeek ?? ""}
+                  onChange={(e) => set("gymDaysPerWeek", Number(e.target.value))}
+                  min="1"
+                  max="7"
+                />
               </Field>
             </div>
           </div>
@@ -130,8 +357,11 @@ export default function SettingsPage() {
         {/* ── Finance Settings ──────────────────────────────────── */}
         <section>
           <div className="section-title" style={{ marginBottom: 12 }}>💰 Cài Đặt Tài Chính</div>
-          <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 20, padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
-            <Field label="Ngưỡng Cảnh Báo Dòng Tiền (VNĐ)" hint={`Hiện tại: ${fmtVND(form.cashFlowWarningThresholdVND ?? 5_000_000)}`}>
+          <div style={cardStyle}>
+            <Field
+              label="Ngưỡng Cảnh Báo Dòng Tiền (VNĐ)"
+              hint={`Hiện tại: ${fmtVND(form.cashFlowWarningThresholdVND ?? 5_000_000)}`}
+            >
               <input
                 style={inputStyle}
                 type="number"
@@ -144,16 +374,63 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* ── Hạng Mục Chi / Thu ──────────────────────────────────── */}
+        <section>
+          <div className="section-title" style={{ marginBottom: 12 }}>📋 Hạng Mục Chi / Thu</div>
+          <div style={cardStyle}>
+            <CategoryManager
+              title="Hạng mục Thu"
+              emoji="📈"
+              items={incCats}
+              accentColor="#34d399"
+              onAdd={addIncCat}
+              onRemove={removeIncCat}
+            />
+            <div style={{ height: 1, background: "var(--border)" }} />
+            <CategoryManager
+              title="Hạng mục Chi"
+              emoji="📉"
+              items={expCats}
+              accentColor="#f87171"
+              onAdd={addExpCat}
+              onRemove={removeExpCat}
+            />
+            <div
+              style={{
+                background: "rgba(129,140,248,0.06)",
+                border: "1px solid rgba(129,140,248,0.15)",
+                borderRadius: 10,
+                padding: "10px 12px",
+                fontSize: 11,
+                color: "var(--text-secondary)",
+                lineHeight: 1.6,
+              }}
+            >
+              💡 Nhấn <strong>Enter</strong> hoặc nút <strong>+</strong> để thêm. Nhấn 🗑️ để xoá. Nhớ bấm <strong>Lưu Cài Đặt</strong> để cập nhật.
+            </div>
+          </div>
+        </section>
+
         {/* ── Notifications ─────────────────────────────────────── */}
         <section>
           <div className="section-title" style={{ marginBottom: 12 }}>🔔 Nhắc Nhở</div>
-          <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 20, padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={cardStyle}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <Field label="Nhắc Gym lúc" hint="Nếu chưa log Gym">
-                <input style={inputStyle} type="time" value={form.notifyGymReminderAt ?? "21:30"} onChange={(e) => set("notifyGymReminderAt", e.target.value)} />
+                <input
+                  style={inputStyle}
+                  type="time"
+                  value={form.notifyGymReminderAt ?? "21:30"}
+                  onChange={(e) => set("notifyGymReminderAt", e.target.value)}
+                />
               </Field>
               <Field label="Nhắc Sleep lúc" hint="Nếu chưa log Sleep">
-                <input style={inputStyle} type="time" value={form.notifySleepReminderAt ?? "22:00"} onChange={(e) => set("notifySleepReminderAt", e.target.value)} />
+                <input
+                  style={inputStyle}
+                  type="time"
+                  value={form.notifySleepReminderAt ?? "22:00"}
+                  onChange={(e) => set("notifySleepReminderAt", e.target.value)}
+                />
               </Field>
             </div>
           </div>
@@ -225,7 +502,7 @@ export default function SettingsPage() {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {goals.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "20px 0", color: "rgba(255,255,255,0.3)", fontSize: 13 }}>
+              <div style={{ textAlign: "center", padding: "20px 0", color: "var(--text-muted)", fontSize: 13 }}>
                 Chưa có mục tiêu nào
               </div>
             ) : (
@@ -237,16 +514,16 @@ export default function SettingsPage() {
                     justifyContent: "space-between",
                     alignItems: "center",
                     padding: "10px 14px",
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.06)",
+                    background: "var(--bg-card)",
+                    border: "1px solid var(--border)",
                     borderRadius: 12,
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)" }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
                       {g.type === "fixed_expense" ? "📌" : g.type === "revenue_forecast" ? "📈" : "⚠️"} {g.name}
                     </div>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>
+                    <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
                       {g.recurrence} · {g.walletType === "nero_phet" ? "Nero Phết" : "Cá Nhân"} · {g.dueDate}
                     </div>
                   </div>
@@ -259,25 +536,36 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* ── Error ─────────────────────────────────────────────── */}
+        {error && (
+          <div style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", color: "#f87171", fontSize: 13 }}>
+            ⚠️ {error}
+          </div>
+        )}
+
         {/* ── Save button ─────────────────────────────────────────── */}
         <button
           onClick={handleSave}
+          disabled={saving}
           style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             padding: "15px 0",
             borderRadius: 16,
             border: "none",
-            background: saved ? "linear-gradient(135deg,#34d399,#10b981)" : "linear-gradient(135deg,#818cf8,#6366f1)",
+            background: saved
+              ? "linear-gradient(135deg,#34d399,#10b981)"
+              : "linear-gradient(135deg,#818cf8,#6366f1)",
             color: "white",
             fontWeight: 700,
             fontSize: 15,
-            cursor: "pointer",
+            cursor: saving ? "not-allowed" : "pointer",
             transition: "background 0.3s",
             marginBottom: 8,
+            opacity: saving ? 0.7 : 1,
           }}
         >
           <Save size={18} />
-          {saved ? "Đã lưu! ✓" : "Lưu Cài Đặt"}
+          {saving ? "Đang lưu..." : saved ? "Đã lưu! ✓" : "Lưu Cài Đặt"}
         </button>
       </div>
     </div>

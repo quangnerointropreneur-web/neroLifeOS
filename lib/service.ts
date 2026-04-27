@@ -47,6 +47,8 @@ export async function getSettings(): Promise<UserSettings> {
     cashFlowWarningThresholdVND: 5_000_000,
     notifyGymReminderAt: "21:30",
     notifySleepReminderAt: "22:00",
+    incomeCategories: ["Doanh thu", "Lương", "Freelance", "Lợi nhuận", "Khác"],
+    expenseCategories: ["Mặt bằng", "Lương nhân viên", "Nhà cung cấp", "Ăn uống", "Di chuyển", "Marketing", "Khác"],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -57,8 +59,14 @@ export async function getSettings(): Promise<UserSettings> {
 export async function updateSettings(
   patch: Partial<UserSettings>
 ): Promise<void> {
-  const ref = doc(db, "lifeOS_settings", USER_ID);
-  await updateDoc(ref, { ...patch, updatedAt: new Date().toISOString() });
+  try {
+    const ref = doc(db, "lifeOS_settings", USER_ID);
+    // Use setDoc+merge so it works even if the document doesn't exist yet
+    await setDoc(ref, { ...patch, updatedAt: new Date().toISOString() }, { merge: true });
+  } catch (err) {
+    console.error("[updateSettings] Error:", err);
+    throw err;
+  }
 }
 
 // ─── Health Logs ─────────────────────────────────────────────────────────────
